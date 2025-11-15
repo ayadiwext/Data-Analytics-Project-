@@ -1,0 +1,72 @@
+/*
+===============================================================================
+Customer Report
+===============================================================================
+Purpose:
+    - This report consolidates key customer metrics and behaviors
+
+Highlights:
+    1. Gathers essential fields such as names, ages, and transaction details.
+	2. Segments customers into categories (VIP, Regular, New) and age groups.
+    3. Aggregates customer-level metrics:
+	   - total orders
+	   - total sales
+	   - total quantity purchased
+	   - total products
+	   - lifespan (in months)
+    4. Calculates valuable KPIs:
+	    - recency (months since last order)
+		- average order value
+		- average monthly spend
+===============================================================================
+*/
+
+-- Create Report: gold.report_customers
+-- 
+
+with base_query as (
+select c.customer_key,
+       customer_number, 
+       concat(first_name,'',last_name) as customer_name,
+       round(datediff(current_date, birthdate)/365)as age,
+       order_number,
+       product_key,
+       sales_amount,
+       quantity,
+       order_date
+from gold.dim_customers c
+join gold.fact_sales f 
+on c.customer_key=f.customer_key
+), customer_agg as (
+select customer_key, customer_number, customer_name, age,
+	   count(distinct order_number) as total_order,
+       count(distinct product_key) as total_product,
+       sum(sales_amount) as total_sales,
+       sum(quantity) as total_quantity_purchased,
+       max(order_date) as last_order,
+       round(datediff(max(order_date),min(order_date))/30) as lifespan
+from base_query
+group by customer_key, customer_number, customer_name, age
+) 
+select customer_key, customer_number, customer_name, age,
+case when age <= 20 then 'under 20'
+     when age between 21 and 30 then '21-30'
+     when age between 31 and 40 then '31-40'
+     when age between 41 and 50 then '41-50'
+     else 'above 50'
+end as age_group,
+case when lifespan >= 12 and total_sales >5000 then 'vip'
+	 when lifespan >= 12 and total_sales <=5000 then 'regular'
+     else 'new'
+end as category,
+     lifespan,
+     total_order,
+     total_product,
+     total_sales,
+     total_quantity_purchased,
+     last_order,
+     round(datediff(current_date(), last_order)/30) as recency,
+	 round(total_sales/total_order) as avg_order_value,
+     round(total_sales/lifespan) as avg_monthly_spend
+from customer_agg
+group by customer_key, customer_number, customer_name, age;
