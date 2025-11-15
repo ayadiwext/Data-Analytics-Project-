@@ -1,0 +1,40 @@
+/*
+===============================================================================
+Performance Analysis (Year-over-Year, Month-over-Month)
+===============================================================================
+Purpose:
+    - To measure the performance of products, customers, or regions over time.
+    - For benchmarking and identifying high-performing entities.
+    - To track yearly trends and growth.
+===============================================================================
+*/
+
+ /* Analyze the yearly performance of products by comparing their sales 
+to both the average sales performance of the product and the previous year's sales */
+
+with duplicate_cte as (
+select year(order_date) as order_year,
+       product_name,
+       sum(sales_amount) as current_sales
+from gold.dim_products p 
+join gold.fact_sales f 
+on p.product_key=f.product_key
+group by year(order_date), product_name
+)
+select order_year,
+  product_name,
+  current_sales,
+  avg(current_sales) over(partition by product_name) as avg_sales,
+  current_sales - avg(current_sales) over(partition by product_name) as diff_cys_and_as,
+case when current_sales - avg(current_sales) over(partition by product_name) > 0 then 'above avg'
+	 when current_sales - avg(current_sales) over(partition by product_name) < 0 then 'below avg'
+     else 'avg'
+end as current_and_avg,
+  lag(current_sales) over(partition by product_name) as previous_year_sales,
+  current_sales - lag(current_sales) over(partition by product_name) as cys_and_pys,
+case when current_sales - lag(current_sales) over(partition by product_name) > 0 then 'increase'
+     when current_sales - lag(current_sales) over(partition by product_name) < 0 then 'decrease'
+     else 'stable'
+end as current_and_previous_year     
+from duplicate_cte
+group by order_year, product_name;  
