@@ -1,0 +1,26 @@
+/*
+===============================================================================
+Cumulative Analysis
+===============================================================================
+Purpose:
+    - To calculate running totals or moving averages for key metrics.
+    - To track performance over time cumulatively.
+    - Useful for growth analysis or identifying long-term trends.
+===============================================================================
+*/
+
+-- Calculate the total sales per month 
+-- and the running total of sales over time
+ 
+with duplicate_cte as(
+select year(order_date) as order_year,
+       sum(sales_amount) as total_sales
+from gold.fact_sales
+group by year(order_date)
+order by year(order_date) asc 
+)
+select order_year,
+  total_sales,
+  sum(total_sales) over( order by order_year) as total_running_sales 
+from duplicate_cte  
+group by order_year;
