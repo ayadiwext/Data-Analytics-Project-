@@ -1,0 +1,27 @@
+/*
+===============================================================================
+Part-to-Whole Analysis
+===============================================================================
+Purpose:
+    - To compare performance or metrics across dimensions or time periods.
+    - To evaluate differences between categories.
+    - Useful for A/B testing or regional comparisons.
+===============================================================================
+*/
+
+-- Which categories contribute the most to overall sales?
+
+with duplicate_cte as (
+select category,
+       sum(sales_amount) total_sales
+from gold.dim_products p
+join gold.fact_sales f 
+on p.product_key=f.product_key
+group by category
+)
+select category,
+       total_sales,
+       sum(total_sales) over() as overall_sales,
+       round(total_sales / sum(total_sales) over() * 100, 2) as percentage_sales_contribution
+from duplicate_cte 
+group by category; 
