@@ -1,0 +1,57 @@
+/*
+===============================================================================
+Product Report
+===============================================================================
+Purpose:
+    - This report consolidates key product metrics and behaviors.
+
+Highlights:
+    1. Gathers essential fields such as product name, category, subcategory, and cost.
+    2. Segments products by revenue to identify High-Performers, Mid-Range, or Low-Performers.
+    3. Aggregates product-level metrics:
+       - total orders
+       - total sales
+       - total quantity sold
+       - total customers (unique)
+       - lifespan (in months)
+    4. Calculates valuable KPIs:
+       - recency (months since last sale)
+       - average order revenue (AOR)
+       - average monthly revenue
+===============================================================================
+*/
+
+-- Create Report: gold.report_products
+-- 
+
+with product_agg as (
+select p.product_key,
+	  product_name,
+      category,
+      cost,
+      count(distinct order_number) as total_order,
+      sum(sales_amount) as total_sales,
+      sum(quantity) as total_quantity_sold,
+      count(distinct customer_key) as total_customers,
+      max(order_date) as last_order,
+      round(datediff(max(order_date), min(order_date))/30) as lifespan
+from gold.fact_sales f 
+join gold.dim_products p
+on f.product_key=p.product_key
+group by p.product_key, product_name, category, cost
+)
+select product_key, product_name, category, cost,
+case when total_sales > 50000 then 'high performer'
+     when total_sales between 10000 and 50000 then 'mid range'
+     else 'low performer'
+end as product_performance,
+     total_order,
+     total_sales,
+     total_quantity_sold,
+     total_customers,
+     lifespan,
+     round(datediff(current_date(), last_order)/30) as recency,
+     round(total_sales/total_order) as avg_order_value,
+     round(total_sales/lifespan) as avg_monthly_revenue
+from product_agg
+group by product_key, product_name, category, cost;
