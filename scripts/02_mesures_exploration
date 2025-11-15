@@ -1,0 +1,37 @@
+/*
+===============================================================================
+Measures Exploration (Key Metrics)
+===============================================================================
+Purpose:
+    - To calculate aggregated metrics (e.g., totals, averages) for quick insights.
+    - To identify overall trends or spot anomalies.
+===============================================================================
+*/
+
+-- Find the Total Sales
+select sum(sales_amount) as total_sales
+from gold.fact_sales;
+
+-- Find how many items sold
+select sum(quantity) total_items_sold
+from gold.fact_sales;
+
+-- Find how many average selling price
+select avg(price) as avg_selling_price
+from gold.fact_sales; 
+
+-- Find the total number of orders
+select count(order_number) as total_order
+from gold.fact_sales;
+
+-- Find the total number of products
+select count(product_key) as total_products
+from gold.dim_products;
+
+-- Find the total number of customers
+select count(customer_key) as total_customers
+from gold.dim_customers;
+
+-- Find the total number of customers that has placed an order
+select count(distinct customer_key) total_customer_order
+from gold.fact_sales;
